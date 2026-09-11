@@ -233,7 +233,7 @@ python3 scripts/validate_roadbook.py roadbook.json     # 纯本地校验
 python3 scripts/fuel_planner.py --tank 22 --consumption 7.0
 python3 scripts/budget_estimator.py roadbook.json
 python3 scripts/export_excel.py roadbook.json -o 路书.xlsx
-python3 -m unittest discover -s tests                  # 9 个单测
+python3 -m unittest discover -s tests                  # 21 个单测
 ```
 
 **Key 只有两个地方用得上**：规划阶段向地图/气象服务**取数**（第 1、2、3 节），以及导出 HTML 地图页时（第 1(b) 节）。路书 JSON 一旦成型，校验、预算、Excel 与 Markdown 都是纯离线的。
@@ -253,16 +253,20 @@ moto-travel-western-sichuan/
 │   ├── planning-policy.md            节假日用户可控避堵、风景公路评分、历史落雪风险决策规则
 │   ├── road-conditions.md            临时交通管控的官方查询渠道 + 检索模板
 │   ├── mcp-setup.md                  各 MCP 的接入配置说明
+│   ├── pipeline.md                   一键构建与住宿预采集流程
 │   └── niche-routes.md               20 条小众/穿越路线候选及其核验状态
 ├── scripts/
 │   ├── roadbook_utils.py           共用：校验、油耗估算、WGS-84/BD-09 → GCJ-02 坐标转换
+│   ├── build_roadbook.py           一键校验并导出 Markdown/HTML/Excel
 │   ├── validate_roadbook.py        路书校验（导出前必跑）
 │   ├── fuel_planner.py             按车型算最大安全加油间隔 + 续航黑洞核对
 │   ├── budget_estimator.py         分类预算（油/住/餐/票/机动）
+│   ├── fetch_lodging.py            FlyAI 住宿批量查询、缓存、风控退避与坐标复核
+│   ├── export_markdown.py          通用 Markdown 路书
 │   ├── export_excel.py             逐日路书 Excel（高风险标色、gap day 灰底、汇总总耗油）
 │   └── export_html.py              单文件高德 JS API 2.0 地图路书
 └── tests/
-    └── test_core.py                9 个单测：校验规则、坐标转换、HTML/Excel 安全
+    └── test_core.py                21 个单测：校验、构建、住宿解析、坐标和导出安全
 ```
 
 **references 是按需读取的**，不要一次性全读——只在进入对应阶段时读（例如进入输出阶段才读 `roadbook-schema.md`）。
@@ -282,6 +286,12 @@ moto-travel-western-sichuan/
 5. **住宿推荐** —— 每晚 2–3 个选项（价格、海拔、供氧/地暖）；大假提前 1–2 个月订。
 6. **预约、动态核验与合规** —— 每个收费景区核验票价/开放时间/预约要求并**记录来源与查询日期**；查不到就标"待复核"。含证件清单、检查站、无人机禁飞区。
 7. **输出路书** —— 生成 JSON → 校验 → 导出 Markdown / Excel / HTML。
+
+输出阶段优先使用一个入口，减少重复执行：
+
+```bash
+python scripts/build_roadbook.py roadbook.json --output-dir roadbook-output
+```
 
 另外两个贯穿性机制：
 
@@ -335,6 +345,26 @@ python scripts/export_excel.py roadbook.json -o 路书.xlsx
 
 耗油口径：`里程 × 油耗/100 × (1 + 2%/1000m 终点海拔) × 1.08 + 0.15L/1000m 累计爬升`。
 
+### `build_roadbook.py` —— 一键构建
+
+```bash
+python scripts/build_roadbook.py roadbook.json \
+  --output-dir roadbook-output \
+  --formats md,html,xlsx
+```
+
+先校验，再从同一份 JSON 生成三种交付物。高德 JS 配置继续从本地环境变量读取；完整说明见 `references/pipeline.md`。
+
+### `fetch_lodging.py` —— 住宿预采集
+
+```bash
+python scripts/fetch_lodging.py roadbook.json \
+  --budget-low 200 --budget-high 400 \
+  --dry-run
+```
+
+脚本从逐日终点提取住宿节点，正式执行时复用缓存、请求限频、风控退避、脱敏价格解析和坐标距离复核。输出供 Agent 复核，不会直接改写路书。
+
 ### `export_html.py` —— 高德地图路书
 
 ```bash
@@ -354,7 +384,7 @@ AMAP_JS_KEY=... AMAP_JS_SECURITY_CODE=... \
 cd moto-travel-western-sichuan && python -m unittest discover -s tests
 ```
 
-9 个用例覆盖：校验规则的正反例、WGS-84→GCJ-02 转换、Excel 公式注入防护、HTML 的 `</script>` 逃逸防护与内嵌 JS 语法。
+21 个用例覆盖：校验规则的正反例、一键构建、住宿节点和脱敏价格解析、WGS-84→GCJ-02 转换、Markdown 内容、Excel 公式注入防护、HTML 的 `</script>` 逃逸防护与内嵌 JS 语法。
 
 ---
 

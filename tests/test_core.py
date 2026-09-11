@@ -15,6 +15,8 @@ sys.path.insert(0, str(SCRIPTS))
 
 from roadbook_utils import validate_roadbook, wgs84_to_gcj02  # noqa: E402
 from export_excel import safe_excel_value  # noqa: E402
+from export_markdown import render_markdown  # noqa: E402
+from fetch_lodging import lodging_nodes, parse_price_range  # noqa: E402
 
 
 def sample_roadbook():
@@ -170,6 +172,52 @@ class CoreTests(unittest.TestCase):
     def test_excel_formula_text_is_neutralized(self):
         self.assertEqual(safe_excel_value("=1+1"), "'=1+1")
         self.assertEqual(safe_excel_value("普通文本"), "普通文本")
+
+    def test_flyai_masked_price_is_parsed_as_price_band(self):
+        self.assertEqual(parse_price_range("¥2xx"), 200)
+        self.assertEqual(parse_price_range("¥7x"), 70)
+        self.assertEqual(parse_price_range("¥1xxx"), 1000)
+        self.assertIsNone(parse_price_range("价格待询"))
+
+    def test_lodging_nodes_are_derived_from_riding_days(self):
+        nodes = lodging_nodes(sample_roadbook(), 20)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["key"], "D1:康定")
+        self.assertEqual(nodes[0]["check_out"], "2026-09-26")
+
+    def test_lodging_destination_strips_route_label(self):
+        roadbook = sample_roadbook()
+        roadbook["days"][0]["end"] = "新都桥（驻地环线）"
+        nodes = lodging_nodes(roadbook, 20)
+        self.assertEqual(nodes[0]["dest"], "新都桥")
+
+    def test_markdown_contains_route_details_and_disclaimer(self):
+        generated = render_markdown(sample_roadbook())
+        self.assertIn("测试风景公路", generated)
+        self.assertIn("预计耗油", generated)
+        self.assertIn("落雪风险", generated)
+        self.assertIn("仅供参考，请量力而行", generated)
+
+    def test_one_command_builder_exports_requested_formats(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "trip.json"
+            output = Path(temp_dir) / "out"
+            source.write_text(json.dumps(sample_roadbook(), ensure_ascii=False), encoding="utf-8")
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "build_roadbook.py"),
+                    str(source),
+                    "--output-dir", str(output),
+                    "--name", "测试路书",
+                    "--formats", "md,html",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue((output / "测试路书.md").exists())
+            self.assertTrue((output / "测试路书.html").exists())
 
     def test_budget_counts_all_days_and_only_required_nights(self):
         with tempfile.TemporaryDirectory() as temp_dir:

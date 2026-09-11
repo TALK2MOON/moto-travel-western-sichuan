@@ -233,7 +233,8 @@ python3 scripts/validate_roadbook.py roadbook.json     # pure local validation
 python3 scripts/fuel_planner.py --tank 22 --consumption 7.0
 python3 scripts/budget_estimator.py roadbook.json
 python3 scripts/export_excel.py roadbook.json -o 路书.xlsx
-python3 -m unittest discover -s tests                  # 9 unit tests
+python3 scripts/build_roadbook.py roadbook.json --output-dir roadbook-output
+python3 -m unittest discover -s tests                  # 21 unit tests
 ```
 
 **Keys are needed in only two places**: **fetching data** from map/weather services during the planning stage (sections 1, 2, 3), and exporting the HTML map page (section 1(b)). Once the roadbook JSON has taken shape, validation, budget, Excel, and Markdown are all purely offline.
@@ -253,16 +254,20 @@ moto-travel-western-sichuan/
 │   ├── planning-policy.md            User-controlled holiday crowd avoidance, scenic-road scoring, historical snow-risk decision rules
 │   ├── road-conditions.md            Official channels for querying temporary traffic controls + search templates
 │   ├── mcp-setup.md                  Connection configuration notes for each MCP
+│   ├── pipeline.md                   One-command build and lodging prefetch workflow
 │   └── niche-routes.md               20 niche / through-route candidates and their verification status
 ├── scripts/
 │   ├── roadbook_utils.py            Shared: validation, fuel estimation, WGS-84/BD-09 → GCJ-02 coordinate conversion
+│   ├── build_roadbook.py            Validate and export Markdown/HTML/Excel in one command
 │   ├── validate_roadbook.py         Roadbook validation (must run before export)
 │   ├── fuel_planner.py              Maximum safe fuel-stop interval by bike model + fuel desert check
 │   ├── budget_estimator.py          Categorized budget (fuel / lodging / meals / tickets / contingency)
+│   ├── fetch_lodging.py             FlyAI batch queries, caching, backoff, and coordinate checks
+│   ├── export_markdown.py           Generic Markdown roadbook exporter
 │   ├── export_excel.py              Day-by-day roadbook Excel (high risk colored, gap day gray, total fuel summary)
 │   └── export_html.py               Single-file Amap JS API 2.0 map roadbook
 └── tests/
-    └── test_core.py                 9 unit tests: validation rules, coordinate conversion, HTML/Excel safety
+    └── test_core.py                 21 unit tests for validation, build, lodging, coordinates, and exports
 ```
 
 **references are read on demand** — do not read them all at once; read them only when you reach the corresponding stage (for example, read `roadbook-schema.md` only when entering the output stage).
@@ -282,6 +287,12 @@ The 7 steps defined by `SKILL.md`:
 5. **Lodging recommendations** — 2–3 options per night (price, altitude, oxygen supply / underfloor heating); for long holidays, book 1–2 months in advance.
 6. **Reservations, dynamic verification, and compliance** — verify ticket price / opening hours / reservation requirements for every paid scenic area and **record the source and query date**; if it cannot be found, mark it "to be re-checked". Includes the document checklist, checkpoints, and no-drone zones.
 7. **Output the roadbook** — generate JSON → validate → export Markdown / Excel / HTML.
+
+At the output stage, prefer the one-command pipeline:
+
+```bash
+python scripts/build_roadbook.py roadbook.json --output-dir roadbook-output
+```
 
 Two more cross-cutting mechanisms:
 

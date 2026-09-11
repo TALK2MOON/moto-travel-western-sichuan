@@ -17,3 +17,5 @@ roadbook.json
 路书.html
 *.xlsx
 *.html
+.roadbook-cache/
+roadbook-output/
