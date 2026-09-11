@@ -49,6 +49,30 @@
 - 能力:酒店/民宿搜索与报价、机票、火车票、景点门票
 - 摩旅用法:按每晚住宿节点查 2–3 个酒店/民宿选项(价格、海拔、供氧/地暖);大假提示提前 1–2 个月订
 
+### CLI 实测要点(2026-09 验证,`@fly-ai/flyai-cli` 1.0.16)
+
+**先探测再回退。** 该 CLI 目前**可用且免 Key**,不需要 MCP 也能用。缺少 MCP 时不要直接跳到“给价格区间由用户自订”的回退方案,先 `which flyai`,没有就 `npm i -g @fly-ai/flyai-cli`,再不行才回退。
+
+```bash
+flyai search-hotel \
+  --dest-name "康定" \
+  --check-in-date 2026-10-04 --check-out-date 2026-10-05 \
+  --sort rate_desc
+```
+
+- 其他子命令:`search-poi`(景点)、`search-flight`(机票)、`search-train`(火车票)、`keyword-search`、`ai-search`
+- 可用参数:`--dest-name`(目的地)、`--key-words`、`--poi-name`、`--hotel-types hotel|homestay|inn`、`--sort distance_asc|rate_desc|price_asc|price_desc|no_rank`、`--check-in-date`/`--check-out-date`、`--hotel-stars`、`--hotel-bed-types`、`--max-price`
+- 返回:JSON(`data.itemList[]`),字段含 `name`/`star`(经济型·舒适型·高档型·豪华型)/`price`/`address`/`latitude`/`longitude`/`decorationTime`/`interestsPoi`/`detailUrl`
+
+**四个必须注意的坑:**
+
+1. **价格是脱敏区间,不是精确报价。** 返回形如 `¥2xx`(= 200–299 元)、`¥7x`、`¥1xxx`、`¥2xxx`。可以据此分档,但**不能写成具体房价**,也不能当实时房态用。
+2. **目的地名有歧义,必须按坐标复核。** `--dest-name 卧龙` 会匹配到**河南南阳卧龙区**(离目标 900km);实测查"卧龙"无结果,改用 `--dest-name 汶川` 再按经纬度距离过滤才对。**拿到结果后一定要用返回的 `latitude`/`longitude` 与节点坐标算距离并排序**,不要直接取第一条。
+3. **偏远节点覆盖薄。** 格聂镇实测只有 2 家(其中一家是"理塘格聂云庭富氧酒店(格聂之眼景区店)",距镇中心 4.6km)。这类节点要在路书里明确写"房源少、务必提前电话订房",并给出低海拔替代住宿。
+4. `--poi-name` / `--key-words` 可能返回非 JSON(用法或服务端限制);以 `--dest-name` + 自行距离过滤为主。
+
+**用法建议:** 逐晚节点各查一次,取 25–30km 内按距离排序的前 2–3 家,连同档次、价格区间、距离、地址、建成年份写进路书;并按过夜海拔补一句选房建议(≥3000m 优先供氧/地暖,格聂镇这类高海拔点必须确认供氧、热水与停车)。
+
 ## 和风天气 MCP(社区开源,需免费 Key)
 
 - 申请:和风天气(dev.qweather.com)注册,免费额度
