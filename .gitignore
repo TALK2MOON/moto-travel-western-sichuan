@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 打包产物
+*.zip
+
+# macOS
+.DS_Store
+
+# 生成的路书产物：其中的 HTML 内嵌高德 JS Key 与安全密钥，不要提交
+roadbook.json
+路书.xlsx
+路书.html
+*.xlsx
+*.html

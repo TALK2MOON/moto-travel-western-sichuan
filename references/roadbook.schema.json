@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codex:moto-travel-western-sichuan:roadbook",
+  "title": "川西摩旅路书",
+  "type": "object",
+  "required": ["title", "coordinate_system", "crowd_avoidance", "days"],
+  "properties": {
+    "title": {"type": "string", "minLength": 1},
+    "coordinate_system": {"enum": ["gcj02", "bd09", "wgs84"]},
+    "crowd_avoidance": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["avoid", "accept"]},
+        "locations": {"type": "array", "items": {"type": "string"}},
+        "date_ranges": {"type": "array", "items": {"type": "string"}},
+        "time_windows": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "rider": {
+      "type": "object",
+      "properties": {
+        "tank_l": {"type": "number", "exclusiveMinimum": 0},
+        "consumption_l_per_100km": {"type": "number", "exclusiveMinimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "days": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/day"}
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "coordinate": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "number", "minimum": -180, "maximum": 180},
+        {"type": "number", "minimum": -90, "maximum": 90}
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "point": {
+      "type": "object",
+      "required": ["name", "lat", "lng"],
+      "properties": {
+        "name": {"type": "string"},
+        "lat": {"type": "number", "minimum": -90, "maximum": 90},
+        "lng": {"type": "number", "minimum": -180, "maximum": 180},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "day": {
+      "type": "object",
+      "required": [
+        "day", "date", "is_gap_day", "start", "end", "route_level",
+        "start_coords", "end_coords", "distance_km", "max_elevation_m",
+        "end_elevation_m", "scenic_spots", "fuel_stops",
+        "road_closure_risk", "weather_typical", "clothing"
+      ],
+      "properties": {
+        "day": {"type": "integer", "minimum": 1},
+        "date": {"type": ["string", "null"]},
+        "is_gap_day": {"type": "boolean"},
+        "start": {"type": "string"},
+        "end": {"type": "string"},
+        "route_level": {"enum": ["rough", "detailed"]},
+        "waypoints": {"type": "array", "items": {"$ref": "#/$defs/point"}},
+        "route_geometry": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/coordinate"}
+        },
+        "route_source": {
+          "type": "object",
+          "required": ["provider", "strategy", "checked_at"],
+          "properties": {
+            "provider": {"type": "string"},
+            "strategy": {"type": "string"},
+            "checked_at": {"type": "string"}
+          },
+          "additionalProperties": true
+        },
+        "scenic_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "reason"],
+            "properties": {
+              "name": {"type": "string"},
+              "reason": {"type": "string"},
+              "distance_km": {"type": "number", "minimum": 0},
+              "best_time": {"type": "string"},
+              "route_geometry": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/coordinate"}}
+            },
+            "additionalProperties": true
+          }
+        },
+        "alternative_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "trigger"],
+            "properties": {
+              "name": {"type": "string"},
+              "trigger": {"type": "string"},
+              "distance_km": {"type": "number", "minimum": 0},
+              "route_geometry": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/coordinate"}}
+            },
+            "additionalProperties": true
+          }
+        },
+        "crowd_avoidance": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {"enabled": {"type": "boolean"}, "plan": {"type": "string"}, "reason": {"type": "string"}},
+          "additionalProperties": true
+        },
+        "snow_risk": {
+          "type": "object",
+          "required": ["level", "basis", "checked_at", "action"],
+          "properties": {
+            "level": {"enum": ["低", "中", "高", "未知"]},
+            "basis": {"type": "string"},
+            "checked_at": {"type": "string"},
+            "action": {"type": "string"}
+          },
+          "additionalProperties": true
+        },
+        "surface": {"type": "string"},
+        "technical_difficulty": {"type": "integer", "minimum": 1, "maximum": 5},
+        "route_confidence": {"enum": ["verified", "recent-community-lead", "unverified"]},
+        "route_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "checked_at", "claim"],
+            "properties": {
+              "source": {"type": "string"},
+              "url": {"type": "string"},
+              "published_at": {"type": ["string", "null"]},
+              "checked_at": {"type": "string"},
+              "claim": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "bailout_points": {"type": "array", "items": {"$ref": "#/$defs/point"}},
+        "no_go_conditions": {"type": "array", "items": {"type": "string"}},
+        "start_coords": {"$ref": "#/$defs/coordinate"},
+        "end_coords": {"$ref": "#/$defs/coordinate"},
+        "distance_km": {"type": "number", "minimum": 0},
+        "max_elevation_m": {"type": "number"},
+        "end_elevation_m": {"type": "number"},
+        "elevation_gain_m": {"type": "number", "minimum": 0},
+        "scenic_spots": {"type": "array", "items": {"$ref": "#/$defs/point"}},
+        "fuel_stops": {"type": "array", "items": {"$ref": "#/$defs/point"}},
+        "road_closure_risk": {"type": "string"},
+        "weather_typical": {"type": "string"},
+        "clothing": {"type": "string"},
+        "requires_lodging": {"type": "boolean"},
+        "plan_b": {"type": "string"}
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {"route_level": {"const": "detailed"}, "is_gap_day": {"const": false}},
+            "required": ["route_level", "is_gap_day"]
+          },
+          "then": {
+            "required": ["waypoints", "route_geometry", "route_source", "scenic_routes", "alternative_routes", "schedule", "meals", "crowd_avoidance", "snow_risk", "plan_b"],
+            "properties": {"scenic_routes": {"minItems": 1}, "alternative_routes": {"minItems": 1}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"snow_risk": {"properties": {"level": {"const": "高"}}, "required": ["level"]}},
+            "required": ["snow_risk"]
+          },
+          "then": {"required": ["no_go_conditions"], "properties": {"no_go_conditions": {"minItems": 1}}}
+        },
+        {
+          "if": {
+            "properties": {"technical_difficulty": {"minimum": 4}},
+            "required": ["technical_difficulty"]
+          },
+          "then": {
+            "required": ["route_geometry", "route_evidence", "bailout_points", "no_go_conditions"],
+            "properties": {
+              "route_evidence": {"minItems": 1},
+              "bailout_points": {"minItems": 1},
+              "no_go_conditions": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    }
+  }
+}
