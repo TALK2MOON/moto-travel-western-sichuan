@@ -61,6 +61,8 @@
 
 还有一条工程上的硬要求：**详细路书的主路线必须是地图服务返回的真实道路轨迹**（`route_geometry`），不允许用起终点坐标直线连一条假路线蒙混过去——`validate_roadbook.py` 会把这种路书拦下来。
 
+![示例图片](/Users/joever/Desktop/MyTravelBook/moto-travel-western-sichuan/imgs/img1.png)
+
 ---
 
 ## 快速开始

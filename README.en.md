@@ -61,6 +61,8 @@ The pitfalls that are easiest to hit when planning a Western Sichuan motorcycle 
 
 There is also one hard engineering requirement: **the main route of a detailed roadbook must be real road geometry returned by a map service** (`route_geometry`); faking a route by drawing a straight line between start and end coordinates is not allowed — `validate_roadbook.py` will stop such a roadbook.
 
+![exampleImage](/Users/joever/Desktop/MyTravelBook/moto-travel-western-sichuan/imgs/img1.png)
+
 ---
 
 ## Quick Start
