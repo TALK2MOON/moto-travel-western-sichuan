@@ -59,11 +59,37 @@ def validate_roadbook(rb):
         return ["路书顶层必须是对象"]
     if not isinstance(rb.get("title"), str) or not rb["title"].strip():
         errors.append("title 必须是非空字符串")
+    if "仅供参考，请量力而行" not in str(rb.get("disclaimer", "")):
+        errors.append("disclaimer 必须包含：仅供参考，请量力而行")
     if rb.get("coordinate_system") not in COORDINATE_SYSTEMS:
         errors.append("coordinate_system 必须是 gcj02、bd09 或 wgs84")
+    rider = rb.get("rider")
+    if not isinstance(rider, dict):
+        errors.append("rider 必须记录与用户确认的骑行能力资料")
+    else:
+        rider_required = ("motorcycle_model", "experience_level", "plateau_experience", "offroad_experience", "preferred_pace")
+        if not all(rider.get(key) for key in rider_required):
+            errors.append("rider 必须包含 motorcycle_model/experience_level/plateau_experience/offroad_experience/preferred_pace")
+    preflight = rb.get("service_preflight")
+    services = preflight.get("services") if isinstance(preflight, dict) else None
+    if not isinstance(preflight, dict) or not preflight.get("checked_at") or not isinstance(services, dict):
+        errors.append("service_preflight 必须记录 checked_at 和 services")
+    else:
+        for service in ("amap", "weather", "lodging"):
+            item = services.get(service)
+            if not isinstance(item, dict) or item.get("status") not in {"available", "unavailable", "not_configured", "declined", "fallback"}:
+                errors.append(f"service_preflight.services.{service} 必须记录有效 status")
     crowd_policy = rb.get("crowd_avoidance")
     if not isinstance(crowd_policy, dict) or crowd_policy.get("mode") not in {"avoid", "accept"}:
         errors.append("crowd_avoidance.mode 必须记录用户选择: avoid 或 accept")
+    holiday = rb.get("holiday_strategy")
+    if not isinstance(holiday, dict) or holiday.get("is_holiday_period") not in {True, False}:
+        errors.append("holiday_strategy 必须记录是否处于假期")
+    elif holiday.get("is_holiday_period"):
+        if holiday.get("day1_extension_proposed") is not True:
+            errors.append("假期路线必须先向用户提出首日延长赶路的隔离车流方案")
+        if holiday.get("user_decision") not in {"accept", "reject"}:
+            errors.append("假期路线必须记录用户对首日延长方案的 accept/reject 决定")
     days = rb.get("days")
     if not isinstance(days, list) or not days:
         errors.append("days 必须是非空数组")
@@ -114,6 +140,8 @@ def validate_roadbook(rb):
         if confidence is not None and confidence not in {"verified", "recent-community-lead", "unverified"}:
             errors.append(f"{label}.route_confidence 值无效")
         if day.get("route_level") == "detailed" and not day.get("is_gap_day"):
+            if day.get("route_phase") not in {"outbound", "return", "local"}:
+                errors.append(f"{label}.route_phase 必须是 outbound/return/local")
             if not isinstance(day.get("waypoints"), list):
                 errors.append(f"{label}.waypoints 详细路线必须是数组")
             schedule = day.get("schedule")
@@ -148,6 +176,20 @@ def validate_roadbook(rb):
             elif snow.get("level") == "高":
                 if not isinstance(day.get("no_go_conditions"), list) or not day["no_go_conditions"]:
                     errors.append(f"{label} 历史落雪高风险日必须提供 no_go_conditions")
+            forecast = day.get("weather_forecast")
+            if not isinstance(forecast, dict) or not all(forecast.get(key) for key in ("status", "summary", "updated_at")):
+                errors.append(f"{label}.weather_forecast 必须记录 status/summary/updated_at")
+            history = day.get("historical_weather")
+            if not isinstance(history, dict) or not all(history.get(key) for key in ("probability_summary", "source", "checked_at", "sample_description")):
+                errors.append(f"{label}.historical_weather 必须记录概率摘要、来源、查询时间和样本说明")
+            elif not any(_is_number(history.get(key)) for key in ("precipitation_probability_pct", "snow_probability_pct")):
+                errors.append(f"{label}.historical_weather 至少需要雨雪或降雪概率")
+            lodging_options = day.get("lodging_options")
+            if day.get("requires_lodging", True) and (not isinstance(lodging_options, list) or not lodging_options):
+                errors.append(f"{label}.lodging_options 住宿日必须包含酒店/民宿建议或明确的不可用占位")
+            context_pois = day.get("context_pois")
+            if not isinstance(context_pois, list):
+                errors.append(f"{label}.context_pois 必须是沿线地物与服务点数组")
     return errors
 
 

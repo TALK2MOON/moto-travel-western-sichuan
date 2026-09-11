@@ -89,6 +89,11 @@ def main():
 
     ws.cell(r, 11, "全程预估总耗油").font = Font(bold=True)
     ws.cell(r, 12, round(total_fuel, 1)).font = Font(bold=True)
+    disclaimer_row = r + 2
+    ws.merge_cells(start_row=disclaimer_row, start_column=1, end_row=disclaimer_row, end_column=12)
+    disclaimer = ws.cell(disclaimer_row, 1, safe_excel_value(rb.get("disclaimer", "仅供参考，请量力而行")))
+    disclaimer.font = Font(bold=True, color="9C2F22")
+    disclaimer.alignment = Alignment(wrap_text=True, vertical="top")
     ws.freeze_panes = "A2"
     wb.save(out)
     print(f"已导出 {out}: {len(rb['days'])} 天, 预估总耗油 {round(total_fuel,1)}L")

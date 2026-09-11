@@ -7,6 +7,7 @@ Excel/HTML 导出脚本共用同一份路书 JSON。规划完成、用户确认�
 ```json
 {
   "title": "川西大环线13天摩旅",
+  "disclaimer": "仅供参考，请量力而行。出发前复核天气、路况、禁限摩及临时管制。",
   "coordinate_system": "gcj02",
   "crowd_avoidance": {
     "mode": "avoid",
@@ -14,14 +15,40 @@ Excel/HTML 导出脚本共用同一份路书 JSON。规划完成、用户确认�
     "date_ranges": ["2026-10-01/2026-10-03"],
     "time_windows": ["09:00-16:00"]
   },
-  "rider": {"tank_l": 15, "consumption_l_per_100km": 3.5},
+  "rider": {
+    "motorcycle_model": "ADV 500",
+    "experience_level": "intermediate",
+    "plateau_experience": "some",
+    "offroad_experience": "basic",
+    "preferred_pace": "normal",
+    "tank_l": 15,
+    "consumption_l_per_100km": 3.5
+  },
+  "service_preflight": {
+    "checked_at": "2026-09-11",
+    "services": {
+      "amap": {"status": "available", "provider": "高德 MCP"},
+      "weather": {"status": "available", "provider": "和风天气"},
+      "lodging": {"status": "available", "provider": "飞猪"}
+    }
+  },
+  "holiday_strategy": {
+    "is_holiday_period": true,
+    "day1_extension_proposed": true,
+    "user_decision": "accept",
+    "plan": "首日早出并延长到低海拔住宿点"
+  },
   "days": [ ... ]
 }
 ```
 
-`rider` 可选但建议提供(用于预估耗油);缺省时脚本按 15L / 3.5L/100km 默认值估算并标注。
+`rider` 必填,其经验字段必须来自用户回答,不得代填。油耗缺失时可以明确使用估算值,但车型、骑行/高原/非铺装经验和节奏不可省略。
+
+`service_preflight` 必填,证明路线规划前检查了高德、天气与住宿服务。`holiday_strategy` 必填;若覆盖法定节假日,必须记录已经提出首日延长赶路方案及用户接受/拒绝的决定。
 
 `coordinate_system` 必填,枚举为 `gcj02`、`bd09`、`wgs84`,且同一文件中所有坐标必须一致。高德来源通常为 GCJ-02,百度来源通常为 BD-09,GPS/OSM 常用 WGS-84。HTML 导出时统一转换为 GCJ-02。
+
+`disclaimer` 必填并包含“仅供参考，请量力而行”。
 
 `crowd_avoidance` 必填,必须记录用户的选择。`mode` 为 `avoid` 或 `accept`;不得由规划者擅自替用户选择。启用避堵时补 `locations`、`date_ranges`、`time_windows` 和可接受的绕行代价。
 
@@ -37,6 +64,7 @@ Excel/HTML 导出脚本共用同一份路书 JSON。规划完成、用户确认�
 | waypoints | array | detailed 必填 | 途经点 [{name, lat, lng, note}],粗略级可为空 |
 | route_geometry | array | detailed 必填 | 地图服务返回的真实道路轨迹 `[[lng,lat], ...]`;粗略路线缺少时 HTML 可用高德临时算路并标为待核验 |
 | route_source | object | detailed 必填 | `{provider, strategy, checked_at}`;记录地图服务、避高速/避拥堵策略和查询日期 |
+| route_phase | string | detailed 必填 | `outbound`/`return`/`local`;用于地图固定区分去程、回程和驻地环线 |
 | scenic_routes | array | detailed 必填且非空 | `[{name, reason, distance_km, best_time, route_geometry}]`;连续风景公路/路段,不是景点列表 |
 | alternative_routes | array | detailed 必填且非空 | `[{name, trigger, distance_km, route_geometry}]`;可执行备选及启用条件,重要备选也应有真实轨迹 |
 | surface | string | detailed 建议 | 路面组成,如“铺装90%＋碎石10%”;无近期依据时写“待核验” |
@@ -55,8 +83,12 @@ Excel/HTML 导出脚本共用同一份路书 JSON。规划完成、用户确认�
 | road_closure_risk | string | ✅ | "低"/"中"/"高" + 原因(如"高:折多山降雪管制,备选G350") |
 | weather_typical | string | ✅ | 往年同期天气描述(和风 MCP 历史数据或检索) |
 | snow_risk | object | detailed 必填 | `{level,basis,checked_at,action}`;level=低/中/高/未知,不得无证据伪造百分比 |
+| weather_forecast | object | detailed 必填 | `{status,summary,updated_at,high_c,low_c,precipitation_probability_pct}`;超出预报范围要明确标注 |
+| historical_weather | object | detailed 必填 | `{probability_summary,precipitation_probability_pct,snow_probability_pct,source,checked_at,sample_description}`;概率必须可追溯 |
 | clothing | string | ✅ | 穿衣推荐(按当日最高海拔与天气) |
 | lodging | object | 建议 | {name, lat, lng, price_range, note}(飞猪 MCP 查得;无则给策略) |
+| lodging_options | array | 住宿日必填 | 2–3 个飞猪酒店/民宿建议;含状态、来源、查询时间、价格区间、海拔、供氧/地暖/停车。接口不可用时用明确的不可用占位,不得伪造 |
+| context_pois | array | detailed 必填 | 沿线草原、山峰/垭口、县城、餐饮、住宿、加油、维修和医院等带坐标标注 |
 | requires_lodging | bool | 建议 | 当晚是否产生住宿成本;最终返回家中通常为 false,缺省为 true |
 | schedule | object | detailed 必填 | {am, pm, evening}:分时段安排;垭口/长线徒步放上午 |
 | meals | object | 建议 | {lunch, dinner, note}:顺路午餐节点+当地特色+晚餐区域 |

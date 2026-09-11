@@ -3,9 +3,10 @@
   "$id": "urn:codex:moto-travel-western-sichuan:roadbook",
   "title": "川西摩旅路书",
   "type": "object",
-  "required": ["title", "coordinate_system", "crowd_avoidance", "days"],
+  "required": ["title", "disclaimer", "coordinate_system", "rider", "service_preflight", "crowd_avoidance", "holiday_strategy", "days"],
   "properties": {
     "title": {"type": "string", "minLength": 1},
+    "disclaimer": {"type": "string", "pattern": "仅供参考，请量力而行"},
     "coordinate_system": {"enum": ["gcj02", "bd09", "wgs84"]},
     "crowd_avoidance": {
       "type": "object",
@@ -21,9 +22,45 @@
     },
     "rider": {
       "type": "object",
+      "required": ["motorcycle_model", "experience_level", "plateau_experience", "offroad_experience", "preferred_pace"],
       "properties": {
+        "motorcycle_model": {"type": "string", "minLength": 1},
+        "experience_level": {"enum": ["novice", "intermediate", "advanced"]},
+        "plateau_experience": {"enum": ["none", "some", "experienced"]},
+        "offroad_experience": {"enum": ["none", "basic", "experienced"]},
+        "preferred_pace": {"enum": ["relaxed", "normal", "intensive"]},
         "tank_l": {"type": "number", "exclusiveMinimum": 0},
         "consumption_l_per_100km": {"type": "number", "exclusiveMinimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "service_preflight": {
+      "type": "object",
+      "required": ["checked_at", "services"],
+      "properties": {
+        "checked_at": {"type": "string"},
+        "services": {
+          "type": "object",
+          "required": ["amap", "weather", "lodging"],
+          "properties": {
+            "amap": {"$ref": "#/$defs/serviceStatus"},
+            "weather": {"$ref": "#/$defs/serviceStatus"},
+            "lodging": {"$ref": "#/$defs/serviceStatus"}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "holiday_strategy": {
+      "type": "object",
+      "required": ["is_holiday_period", "day1_extension_proposed", "user_decision"],
+      "properties": {
+        "is_holiday_period": {"type": "boolean"},
+        "day1_extension_proposed": {"type": "boolean"},
+        "user_decision": {"enum": ["accept", "reject", "not_applicable"]},
+        "plan": {"type": "string"},
+        "safety_reason": {"type": "string"}
       },
       "additionalProperties": true
     },
@@ -35,6 +72,16 @@
   },
   "additionalProperties": true,
   "$defs": {
+    "serviceStatus": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["available", "unavailable", "not_configured", "declined", "fallback"]},
+        "provider": {"type": "string"},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
     "coordinate": {
       "type": "array",
       "prefixItems": [
@@ -86,6 +133,7 @@
           },
           "additionalProperties": true
         },
+        "route_phase": {"enum": ["outbound", "return", "local", "gap"]},
         "scenic_routes": {
           "type": "array",
           "items": {
@@ -132,6 +180,57 @@
           },
           "additionalProperties": true
         },
+        "weather_forecast": {
+          "type": "object",
+          "required": ["status", "summary", "updated_at"],
+          "properties": {
+            "status": {"enum": ["available", "out_of_range", "unavailable"]},
+            "summary": {"type": "string"},
+            "updated_at": {"type": "string"},
+            "high_c": {"type": "number"},
+            "low_c": {"type": "number"},
+            "precipitation_probability_pct": {"type": "number", "minimum": 0, "maximum": 100}
+          },
+          "additionalProperties": true
+        },
+        "historical_weather": {
+          "type": "object",
+          "required": ["probability_summary", "source", "checked_at", "sample_description"],
+          "properties": {
+            "probability_summary": {"type": "string"},
+            "precipitation_probability_pct": {"type": "number", "minimum": 0, "maximum": 100},
+            "snow_probability_pct": {"type": "number", "minimum": 0, "maximum": 100},
+            "source": {"type": "string"},
+            "checked_at": {"type": "string"},
+            "sample_description": {"type": "string"}
+          },
+          "anyOf": [
+            {"required": ["precipitation_probability_pct"]},
+            {"required": ["snow_probability_pct"]}
+          ],
+          "additionalProperties": true
+        },
+        "lodging_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "status", "source", "checked_at"],
+            "properties": {
+              "name": {"type": "string"},
+              "status": {"enum": ["available", "verify", "unavailable"]},
+              "source": {"type": "string"},
+              "checked_at": {"type": "string"},
+              "price_range": {"type": "string"},
+              "altitude_m": {"type": "number"},
+              "oxygen": {"type": "string"},
+              "heating": {"type": "string"},
+              "parking": {"type": "string"},
+              "note": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "context_pois": {"type": "array", "items": {"$ref": "#/$defs/point"}},
         "surface": {"type": "string"},
         "technical_difficulty": {"type": "integer", "minimum": 1, "maximum": 5},
         "route_confidence": {"enum": ["verified", "recent-community-lead", "unverified"]},
@@ -174,7 +273,7 @@
             "required": ["route_level", "is_gap_day"]
           },
           "then": {
-            "required": ["waypoints", "route_geometry", "route_source", "scenic_routes", "alternative_routes", "schedule", "meals", "crowd_avoidance", "snow_risk", "plan_b"],
+            "required": ["route_phase", "waypoints", "route_geometry", "route_source", "scenic_routes", "alternative_routes", "schedule", "meals", "crowd_avoidance", "snow_risk", "weather_forecast", "historical_weather", "lodging_options", "context_pois", "plan_b"],
             "properties": {"scenic_routes": {"minItems": 1}, "alternative_routes": {"minItems": 1}}
           }
         },
