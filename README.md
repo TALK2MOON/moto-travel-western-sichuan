@@ -9,17 +9,38 @@
 
 ---
 
+## 免责声明
+
+**请先读这一段：本工具产出的所有路书内容都只是「建议」，不是权威结论，也不构成任何保证。**
+
+具体包括：路线走向、里程、海拔、耗时与油耗估算、天气与历史落雪评级、票价与预约要求、住宿与加油点、管制与封路判断，以及任何与健康、医疗、装备相关的内容。它们由公开资料、地图算路和第三方气象数据推导而来，**川西的天气、路况、管制、景区政策与加油站营业状态变化很快，这些内容可能已经过期，也可能从一开始就有误**。
+
+使用即表示你理解并同意：
+
+- **量力而行。** 高原骑行本身有真实风险，本工具无法评估你的体能、骑行技术、高原适应能力、车况与经验。**路线难度评级只是路况描述，不代表适合你**；任何一段骑不动、判断不了的地方，掉头或不走都是正确决定。
+- **高原反应按身体信号处理，不按计划处理。** 出现症状时不继续升高住宿海拔；同海拔休息后加重，或出现静息呼吸困难、步态不稳、意识异常时**立即下撤并求医**。小罐便携氧不能替代下撤或医疗救治。血氧读数必须结合海拔、趋势、症状与设备误差判断，不能用单一阈值替代诊断。**行程可以取消，身体不能重来。**
+- **所有关键信息出发前自行复核。** 按路书里的「出发前复核清单」，在出发前 1 周、48 小时、当日清晨各查一次官方渠道；**最终以官方公告与现场交通标志为准**，不要拿本工具的结论替代交警、路政或现场人员的判断。
+- **遵守当地法规。** 例如四川省高速公路禁止摩托车进入、成都绕城高速（G4202）以内（含）对 150cc 以上两轮禁行。闯禁行的后果由骑行者自负。
+- **自行承担风险。** 因参考本工具而产生的任何人身伤害、财产损失、行程损失或法律后果，作者与贡献者**不承担任何责任**。本工具不替代你的独立判断、专业指导、救援服务与保险——**请务必购买含高原救援的旅行险与有效的骑行意外险**。
+
+完整的技术性限制见文末「[已知限制](#已知限制)」。
+
+---
+
 ## 目录
 
+- [免责声明](#免责声明)
 - [它解决什么问题](#它解决什么问题)
 - [快速开始](#快速开始)
+- [接口权限申请](#接口权限申请)
 - [目录结构](#目录结构)
 - [工作流](#工作流)
 - [脚本参考](#脚本参考)
 - [路书 JSON 数据模型](#路书-json-数据模型)
 - [数据源与回退链](#数据源与回退链)
 - [输出物](#输出物)
-- [已知限制与免责声明](#已知限制与免责声明)
+- [已知限制](#已知限制)
+- [许可](#许可)
 
 ---
 
@@ -89,6 +110,129 @@ python3 scripts/export_excel.py roadbook.json -o 路书.xlsx
 AMAP_JS_KEY=... AMAP_JS_SECURITY_CODE=... \
   python3 scripts/export_html.py roadbook.json -o 路书.html
 ```
+
+---
+
+## 接口权限申请
+
+本 skill 不绑定任何付费服务，但**完整能力需要下面几个 Key**。全部可以只用免费额度跑通；不需要的部分（例如不做地图导出、不接气象预警）可以跳过。
+
+> **密钥纪律**：一律走**环境变量**或客户端本地 MCP 配置。不要把 Key 写进路书 JSON、skill 文件、仓库或聊天正文。本仓库的 `.gitignore` 已排除 `*.html` / `*.xlsx` / `roadbook.json`，因为导出的 HTML 可能内嵌高德 JS Key 与安全密钥。
+
+### 1. 高德地图 —— 需要**两个不同类型**的 Key
+
+这是最容易踩坑的地方：**算路用的 Key 和地图网页用的 Key 是两种东西，不能互相替代**。
+
+#### (a) Web 服务 Key —— 算路、地理编码、POI
+
+用途：`/v3/direction/driving`（取真实道路轨迹）、`/v3/geocode/geo`（地址转坐标）、POI 检索。
+
+1. 注册并登录 [高德开放平台](https://lbs.amap.com/)
+2. 进入 [控制台 → 应用管理 → 我的应用](https://console.amap.com/dev/key/app)，**创建新应用**
+3. 在该应用下 **添加 Key**，**服务平台选「Web服务」**
+4. 记下 Key，配置为环境变量供脚本与 MCP 使用：
+
+```bash
+export AMAP_KEY='你的 Web服务 Key'
+# 若用官方 MCP：
+#   Streamable HTTP: https://mcp.amap.com/mcp?key=<Web服务 Key>
+#   或 Node stdio:   npx -y @amap/amap-maps-mcp-server   (环境变量 AMAP_MAPS_API_KEY)
+```
+
+**配额与限速**：个人开发者有免费日配额与 **QPS 限制**。一次完整的川西 13 天规划大约消耗 100–300 次调用（地理编码 ~90 次 + 逐段算路 ~30 次 + 重试）。触发 QPS 上限时接口返回 `CUQPS_HAS_EXCEEDED_THE_LIMIT`，**必须限速 + 退避重试**，不要循环硬打。
+
+> ⚠️ **摩托车无法用"驾车"算路保证合法**：四川高速禁摩，而驾车算路默认会走高速。本 skill 的用法是 `strategy=6`（不走高速），并在导出前**再扫一遍返回结果里的道路名**，发现「高速 / 快速路」字样就返回修正。即便如此，最终仍以现场标志为准。
+
+#### (b) Web端(JS API) Key + 安全密钥 —— 导出地图网页
+
+用途：`scripts/export_html.py` 生成的高德 JS API 2.0 页面。
+
+1. 在**同一个应用**下再添加一个 Key，**服务平台选「Web端(JS API)」**
+2. 在同一页面点「**查看安全密钥**」拿到安全密钥（2021-12-02 之后申请的 Key 必须配安全密钥才能用）
+3. 导出时传入：
+
+```bash
+export AMAP_JS_KEY='你的 Web端(JS API) Key'
+export AMAP_JS_SECURITY_CODE='你的安全密钥'
+python3 scripts/export_html.py roadbook.json -o 路书.html
+```
+
+不传这两个变量也能导出，页面会引导在浏览器里临时输入（仅存 sessionStorage，刷新即失效）。
+
+> ⚠️ **安全密钥不要公开**。导出器默认把它内嵌进 HTML（`window._AMapSecurityConfig`），这只适合**本地自用**。要分享或部署，请按高德官方《JS API 安全密钥使用》文档改用**服务端代理**，并且不要把带密钥的 HTML 提交到仓库或发到公开链接。
+
+### 2. 和风天气 —— 注意「凭据 ID ≠ API Host」
+
+用途：超长窗口预报（30 天，可覆盖整个行程）与**灾害预警**。
+
+1. 注册并登录 [和风天气控制台](https://console.qweather.com/)
+2. **创建项目（Project）**，在项目下**创建凭据**（API Key；付费场景也可用 JWT）
+3. **关键一步**：到 [控制台 → 设置](https://console.qweather.com/setting) 复制你的 **API Host**，形如 `xxxxxxxxxx.re.qweatherapi.com`
+
+   这一步是绝大多数 403 的来源：
+
+   - **API Host 由系统随机分配、每个账号唯一**，而且**它与「凭据 ID」不是同一个东西**——照着凭据 ID 猜 Host 一定失败
+   - 官方明确说明 **API Host 本身是身份认证的一部分**，所以它也算凭据，别外泄
+   - 用错 Host 会得到 `403 Invalid Host`。**这个报错与 Key 无关**，不要因为看到 403 就去反复换 Key
+
+4. 请求形式（注意坐标是 **经度,纬度**）：
+
+```bash
+export QW_HOST='https://xxxxxxxxxx.re.qweatherapi.com'
+export QW_KEY='你的 API Key'
+# 30 天预报
+curl -s "$QW_HOST/v7/weather/30d?location=101.96,29.99&key=$QW_KEY"
+# 实时灾害预警（新端点）
+curl -s "$QW_HOST/weatheralert/v1/current/29.99/101.96?key=$QW_KEY"
+```
+
+5. 本 skill 用到的两个端点：
+
+| 端点 | 用途 | 备注 |
+|---|---|---|
+| `/v7/weather/30d` | 30 天预报，覆盖整个行程窗口 | 免费额度按请求量计；一次全量约 46 次请求 |
+| `/weatheralert/v1/current/{lat}/{lon}` | 实时灾害预警（降雪/寒潮/大风） | **必须用 v1** |
+
+> ⚠️ 旧的 `/v7/warning/now` **已被官方弃用**（2026-10-01 停服），继续用它只会拿到 403 Deprecated。
+>
+> ⚠️ **30 天产品是格点级的，分辨不出高海拔垭口**：实测同一格点的多个坐标会返回完全相同的数值（巴朗山隧道 == 四姑娘山镇、万里城梁子 == 金川县城、新都桥 == 塔公 == 雅拉山口 == 折多山 == 康定），它会把金川河谷的气温报成 4540m 万里城梁子的气温。**判断垭口暗冰/降雪要配合按海拔建模的数据源**（如 Open-Meteo），和风更适合看大尺度天气形势。
+
+### 3. Open-Meteo —— 免 Key，作为回退与交叉校验
+
+**不需要注册**，直接调用。本 skill 用它做三件事：
+
+| 用途 | 端点 |
+|---|---|
+| 历史同期气候统计（1995 年起，ERA5） | `archive-api.open-meteo.com/v1/archive` |
+| 沿真实道路轨迹采样海拔（Copernicus DEM） | `api.open-meteo.com/v1/elevation` |
+| 预报（16 天，按真实海拔建模） | `api.open-meteo.com/v1/forecast` |
+
+注意事项：
+
+- **免费额度按分钟/小时/天限制请求量**，突发请求会返回 `429 Too Many Requests`，必须限速 + 退避重试。
+- 实测坑：本机 Python `urllib` 发起的请求会被**持续** 429，而同一时刻 `curl` 正常返回（疑似出口 IP / TLS 指纹相关）。所以本 skill 里对 Open-Meteo 的请求统一走 `curl` 子进程，见此仓库外部的取数脚本或自行实现时注意这一点。
+- 当 API 不可用时，**不要编造数据**：把结论标为「未知」，并按中等风险处理。
+
+### 4. 可选能力
+
+| 能力 | 服务 | 获取方式 | 备注 |
+|---|---|---|---|
+| 住宿 / 票务 | 飞猪 FlyAI | 见 `references/mcp-setup.md` | 免 Key，即插即用；状态以官方文档为准 |
+| 备选算路 | 百度地图 | [百度地图开放平台](https://lbsyun.baidu.com/) → 创建应用 → **服务端 AK** | 支持 HTTP/SSE/stdio MCP；用于高德不可用时 |
+| 沿途情报 | 小红书（社区 MCP） | 本地跑服务后客户端配置，需**扫码登录** | ⚠️ 非官方逆向，**有封号风险，建议用小号**；只作线索，不能证明道路开放 |
+| 火车票（摩托托运/人车分流备用） | 12306（社区 MCP） | `npx -y 12306-mcp` | 免登录 |
+
+### 5. 只需要跑通校验和导出，不需要任何 Key
+
+```bash
+python3 scripts/validate_roadbook.py roadbook.json     # 纯本地校验
+python3 scripts/fuel_planner.py --tank 22 --consumption 7.0
+python3 scripts/budget_estimator.py roadbook.json
+python3 scripts/export_excel.py roadbook.json -o 路书.xlsx
+python3 -m unittest discover -s tests                  # 9 个单测
+```
+
+**Key 只有两个地方用得上**：规划阶段向地图/气象服务**取数**（第 1、2、3 节），以及导出 HTML 地图页时（第 1(b) 节）。路书 JSON 一旦成型，校验、预算、Excel 与 Markdown 都是纯离线的。
 
 ---
 
@@ -284,7 +428,9 @@ cd moto-travel-western-sichuan && python -m unittest discover -s tests
 
 ---
 
-## 已知限制与免责声明
+## 已知限制
+
+> 免责声明见文首「[免责声明](#免责声明)」。以下是技术层面的具体限制。
 
 - **不是实时权威。** 路况、管制、票价、预约、房态、开放状态全部需要按「出发前复核清单」在出发前 1 周、48 小时、当日清晨复核。超过 72 小时的管制信息默认需要重新确认。
 - **管制信息没有可靠的单一 API。** 地图事件图层和社区帖子只是线索，**不能证明道路开放**；最终以官方公告和现场交通标志为准。
@@ -298,4 +444,23 @@ cd moto-travel-western-sichuan && python -m unittest discover -s tests
 
 ## 许可
 
-未指定。若要公开发布，请自行补充 LICENSE；注意 `references/niche-routes.md` 中引用的第三方视频与笔记链接仅作为线索来源。
+本项目以 **GNU General Public License v3.0** 发布，全文见 [LICENSE](LICENSE)。
+
+```
+Copyright (C) 2026  TALK2MOON
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+```
+
+GPL-3.0 是一条**强 copyleft** 许可：你可以自由使用、修改、分发，但**分发衍生作品时必须同样以 GPL-3.0 开源并保留版权声明**（详见 LICENSE 全文）。另外请注意两点：
+
+- **软件许可不覆盖第三方内容。** `references/niche-routes.md` 中引用的短视频与笔记链接、`references/western-sichuan-knowledge.md` 中引用的法规与官方资料，版权归各自权利人，此处仅作为线索来源与引用。
+- **许可证不改变免责声明。** GPL-3.0 第 15、16 条明确不提供任何担保；文首的免责声明与「[已知限制](#已知限制)」同样适用。
