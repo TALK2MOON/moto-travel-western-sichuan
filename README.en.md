@@ -2,6 +2,11 @@
 
 **English** · [中文](README.md)
 
+[![CI](https://github.com/TALK2MOON/moto-travel-western-sichuan/actions/workflows/ci.yml/badge.svg)](https://github.com/TALK2MOON/moto-travel-western-sichuan/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Claude Skill](https://img.shields.io/badge/Claude-Skill-8A2BE2.svg)](https://code.claude.com/docs/en/skills)
+
 A roadbook toolkit that turns "how do I ride a motorcycle through Western Sichuan" from a vague idea into something **executable, re-checkable, and exportable**.
 
 It rejects the "string the scenic spots together" approach and works in reverse instead: **first pick the continuous scenic roads worth riding, then fill in with a small number of scenic spots**; holiday crowd / traffic avoidance, historical snow risk, altitude acclimatization pace, and fuel range are treated as hard constraints rather than footnotes; finally it outputs a Markdown roadbook with real road geometry, an Excel workbook, and an Amap web page.
@@ -75,15 +80,26 @@ pip install -r requirements.txt      # openpyxl>=3.1,<4 (needed only for Excel e
 
 Python 3.9+. Core validation, fuel, budget, and HTML export use only the standard library; `openpyxl` is used only for Excel export.
 
-### 2. Loading as a Skill
+### 2. Installing as a Skill
 
-Put this directory into your skills directory (Claude Code / Kimi Code, etc.), or link it into a project scope:
+**Option A: install as a Claude Code plugin (recommended)**
+
+```bash
+/plugin marketplace add TALK2MOON/moto-travel-western-sichuan
+/plugin install moto-travel-western-sichuan@moto-travel-western-sichuan
+```
+
+**Option B: drop it into your skills directory** (Claude Code / Kimi Code, etc.)
+
+Put this directory into your skills directory, or link it into a project scope:
 
 ```bash
 # Example: this project's scope
 mkdir -p <project-root>/.kimi-code/skills
 ln -s "$PWD" <project-root>/.kimi-code/skills/moto-travel-western-sichuan
 ```
+
+**Option C: download the Release archive** and follow Option B.
 
 Once loaded, mentioning "川西摩旅 / 格聂 / 金小路 / S434 / 折多山 / 稻城亚丁 / 四姑娘山 路书" (Western Sichuan motorcycle trip / Genie / Jinxiaolu / S434 / Zheduo Pass / Daocheng Yading / Mount Siguniang roadbook) will trigger it.
 
@@ -245,6 +261,10 @@ python3 -m unittest discover -s tests                  # 21 unit tests
 
 ```
 moto-travel-western-sichuan/
+├── .claude-plugin/                 Claude Code plugin and marketplace manifests
+│   ├── plugin.json                 Plugin metadata (name / version / license / keywords)
+│   └── marketplace.json            Self-hosted marketplace for one-command /plugin install
+├── .github/workflows/ci.yml        CI: 3.9/3.10/3.12/3.13 tests + manifest validation
 ├── SKILL.md                         Skill body: core principles, dependency pre-check, 7-step workflow
 ├── requirements.txt                 Excel export dependency
 ├── references/                      Domain knowledge + rules + schema (read on demand, see below)

@@ -1,0 +1,23 @@
+{
+  "name": "moto-travel-western-sichuan",
+  "description": "Plan motorcycle roadbooks for Western Sichuan (Aba / Ganzi prefectures). Enforces real road geometry from Amap instead of straight lines, the Sichuan highway motorcycle ban, user-chosen holiday congestion avoidance, altitude acclimatization limits, historical snow risk per pass elevation, and fuel range planning. Exports Markdown, Excel, and an Amap JS HTML map.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TALK2MOON",
+    "url": "https://github.com/TALK2MOON"
+  },
+  "homepage": "https://github.com/TALK2MOON/moto-travel-western-sichuan",
+  "repository": "https://github.com/TALK2MOON/moto-travel-western-sichuan",
+  "license": "GPL-3.0",
+  "keywords": [
+    "motorcycle",
+    "motorcycle-touring",
+    "sichuan",
+    "china",
+    "travel",
+    "roadbook",
+    "route-planning",
+    "amap",
+    "altitude-sickness"
+  ]
+}

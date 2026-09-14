@@ -2,6 +2,11 @@
 
 **中文** · [English](README.en.md)
 
+[![CI](https://github.com/TALK2MOON/moto-travel-western-sichuan/actions/workflows/ci.yml/badge.svg)](https://github.com/TALK2MOON/moto-travel-western-sichuan/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Claude Skill](https://img.shields.io/badge/Claude-Skill-8A2BE2.svg)](https://code.claude.com/docs/en/skills)
+
 一个把「川西骑摩托怎么走」从模糊想法变成**可执行、可复核、可导出**的路书工具包。
 
 它不接受"把景点串起来"的做法，而是反过来：**先选值得骑的连续风景公路，再用少量景点补充**；把节假日避堵、历史落雪风险、海拔适应节奏、加油续航当成硬约束而不是备注；最后输出带真实道路轨迹的 Markdown 路书、Excel 表和高德地图网页。
@@ -75,15 +80,26 @@ pip install -r requirements.txt      # openpyxl>=3.1,<4（仅 Excel 导出需要
 
 Python 3.9+。核心校验、燃料、预算与 HTML 导出只用标准库，`openpyxl` 只有 Excel 导出用得上。
 
-### 2. 作为 Skill 加载
+### 2. 作为 Skill 安装
 
-把这个目录放进你的 skills 目录（Claude Code / Kimi Code 等），或链接到项目作用域：
+**方式 A：作为 Claude Code 插件安装（推荐）**
+
+```bash
+/plugin marketplace add TALK2MOON/moto-travel-western-sichuan
+/plugin install moto-travel-western-sichuan@moto-travel-western-sichuan
+```
+
+**方式 B：手动放进 skills 目录**（Claude Code / Kimi Code 等）
+
+把这个目录放进你的 skills 目录，或链接到项目作用域：
 
 ```bash
 # 例：本项目作用域
 mkdir -p <项目根>/.kimi-code/skills
 ln -s "$PWD" <项目根>/.kimi-code/skills/moto-travel-western-sichuan
 ```
+
+**方式 C：下载 Release 压缩包**，解压后按方式 B 放入 skills 目录。
 
 加载后，提到"川西摩旅 / 格聂 / 金小路 / S434 / 折多山 / 稻城亚丁 / 四姑娘山 路书"会触发它。
 
@@ -244,6 +260,10 @@ python3 -m unittest discover -s tests                  # 21 个单测
 
 ```
 moto-travel-western-sichuan/
+├── .claude-plugin/                 Claude Code 插件与市场清单
+│   ├── plugin.json                 插件元数据（名称/版本/许可/关键词）
+│   └── marketplace.json            自托管市场，支持 /plugin 一条命令安装
+├── .github/workflows/ci.yml        CI：3.9/3.10/3.12/3.13 单测 + 清单校验
 ├── SKILL.md                        技能主体：核心原则、依赖预检、7 步工作流
 ├── requirements.txt                Excel 导出依赖
 ├── references/                     领域知识 + 规则 + schema（按需读取，见下）

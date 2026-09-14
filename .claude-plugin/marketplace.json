@@ -1,0 +1,30 @@
+{
+  "name": "moto-travel-western-sichuan",
+  "owner": {
+    "name": "TALK2MOON",
+    "url": "https://github.com/TALK2MOON"
+  },
+  "description": "Western Sichuan motorcycle roadbook planning skill for Claude Code.",
+  "plugins": [
+    {
+      "name": "moto-travel-western-sichuan",
+      "source": "./",
+      "displayName": "川西摩旅路书规划",
+      "description": "Scenic-road-first motorcycle roadbook planner for Western Sichuan: real Amap road geometry, Sichuan highway motorcycle ban handling, holiday congestion avoidance, historical snow risk, altitude acclimatization, and fuel range planning with Markdown / Excel / Amap HTML export.",
+      "author": {
+        "name": "TALK2MOON"
+      },
+      "homepage": "https://github.com/TALK2MOON/moto-travel-western-sichuan",
+      "repository": "https://github.com/TALK2MOON/moto-travel-western-sichuan",
+      "license": "GPL-3.0",
+      "category": "travel",
+      "tags": [
+        "motorcycle",
+        "travel",
+        "sichuan",
+        "roadbook",
+        "route-planning"
+      ]
+    }
+  ]
+}
